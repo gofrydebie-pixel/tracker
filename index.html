@@ -213,6 +213,18 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       </div>
       <div class="food-sugg" id="foodSugg"></div>
       <div id="foodPreview"></div>
+      <div class="section-label">Quick Add <span style="color:var(--muted);font-size:10px;letter-spacing:0;text-transform:none;font-weight:400">— one-off, not saved to database</span></div>
+      <div class="card" style="padding:12px">
+        <input class="cname" id="qaName" type="text" placeholder="Name (e.g. home stew, restaurant meal...)">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+          <input class="cinp" id="qaWeight" type="number" placeholder="g">
+          <input class="cinp" id="qaKcal" type="number" placeholder="kcal">
+          <input class="cinp" id="qaProt" type="number" placeholder="prot g">
+          <input class="cinp" id="qaCarb" type="number" placeholder="carb g">
+          <input class="cinp" id="qaFat" type="number" placeholder="fat g">
+        </div>
+        <button class="save-btn" style="font-size:14px;padding:10px;margin-top:0" onclick="quickAdd()">ADD TO LOG</button>
+      </div>
       <div class="section-label">Today's Log</div>
       <div id="foodLog"><div class="empty"><div class="empty-icon">🥗</div>No food logged yet</div></div>
     </div>
@@ -737,6 +749,26 @@ async function addFood(){
     entry.atId=res.records[0].id;
     pill('ok','synced');
   }catch(e){pill('err','error');}
+}
+
+async function quickAdd(){
+  const name = document.getElementById('qaName').value.trim();
+  if(!name){ alert('Enter a name'); return; }
+  const kcal  = parseFloat(document.getElementById('qaKcal').value)  || 0;
+  const prot  = parseFloat(document.getElementById('qaProt').value)  || 0;
+  const carb  = parseFloat(document.getElementById('qaCarb').value)  || 0;
+  const fat   = parseFloat(document.getElementById('qaFat').value)   || 0;
+  const weight= parseFloat(document.getElementById('qaWeight').value)|| 0;
+  const entry = {id:Date.now(), name, weight, kcal:Math.round(kcal), protein:prot, carbs:carb, fat};
+  todayLog.push(entry);
+  ['qaName','qaWeight','qaKcal','qaProt','qaCarb','qaFat'].forEach(id=>document.getElementById(id).value='');
+  renderLog(); calcTotals();
+  pill('busy','saving...');
+  try{
+    const res=await at(`/${BASE}/${enc(T_NUT)}`,{method:'POST',body:JSON.stringify({records:[{fields:{Date:today(),Food:name,Weight_g:weight,Calories:Math.round(kcal),Protein_g:prot,Carbs_g:carb,Fat_g:fat}}]})});
+    entry.atId=res.records[0].id;
+    pill('ok','synced');
+  }catch(e){ pill('err','error'); }
 }
 
 async function removeFood(id){
