@@ -877,10 +877,24 @@ async function loadHistory(){
     try{
       const recs=await atList(T_NUT);
       const days={};
-      recs.forEach(r=>{const f=r.fields;if(!days[f.Date])days[f.Date]={kcal:0,prot:0,items:0};days[f.Date].kcal+=f.Calories||0;days[f.Date].prot+=f.Protein_g||0;days[f.Date].items++;});
+      recs.forEach(r=>{const f=r.fields;if(!days[f.Date])days[f.Date]={kcal:0,prot:0,carb:0,fat:0,items:0};days[f.Date].kcal+=f.Calories||0;days[f.Date].prot+=f.Protein_g||0;days[f.Date].carb+=f.Carbs_g||0;days[f.Date].fat+=f.Fat_g||0;days[f.Date].items++;});
       const sorted=Object.entries(days).sort(([a],[b])=>b.localeCompare(a));
+      const TARGETS={kcal:2300,prot:150,carb:250,fat:70};
+      function macroBar(val,target,color){
+        const pct=Math.min(100,Math.round(val/target*100));
+        const over=val>target;
+        return `<div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+            <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">${color==='var(--nutrition)'?'kcal':color==='var(--accent)'?'protein':color==='var(--phase1)'?'carbs':'fat'}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:11px;color:${over?'var(--phase2)':color}">${Math.round(val)} <span style="color:var(--muted)">/ ${target}${color==='var(--nutrition)'?'':' g'}</span></span>
+          </div>
+          <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${over?'var(--phase2)':color};border-radius:3px;transition:width .4s"></div>
+          </div>
+        </div>`;
+      }
       document.getElementById('nHistory').innerHTML=sorted.length
-        ?sorted.map(([date,d])=>{const pc=d.prot>=150?'var(--accent)':d.prot>=120?'var(--nutrition)':'var(--phase2)';return`<div class="hist-item"><div class="hist-date">${date}</div><div style="display:flex;gap:20px;margin-top:4px"><div><span style="font-family:'Bebas Neue';font-size:22px;color:var(--nutrition)">${Math.round(d.kcal)}</span> <span style="font-size:11px;color:var(--muted)">kcal</span></div><div><span style="font-family:'Bebas Neue';font-size:22px;color:${pc}">${Math.round(d.prot)}g</span> <span style="font-size:11px;color:var(--muted)">protein</span></div></div><div class="hist-detail" style="margin-top:4px">${d.items} items logged</div></div>`;}).join('')
+        ?sorted.map(([date,d])=>{return`<div class="hist-item"><div class="hist-date" style="margin-bottom:10px">${date} · <span style="color:var(--muted)">${d.items} items logged</span></div>${macroBar(d.kcal,TARGETS.kcal,'var(--nutrition)')}${macroBar(d.prot,TARGETS.prot,'var(--accent)')}${macroBar(d.carb,TARGETS.carb,'var(--phase1)')}${macroBar(d.fat,TARGETS.fat,'var(--phase3)')}</div>`;}).join('')
         :'<div class="empty"><div class="empty-icon">🥗</div>No nutrition logged yet</div>';
     }catch(e){document.getElementById('nHistory').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div>${e.message}</div>`;}
   }
